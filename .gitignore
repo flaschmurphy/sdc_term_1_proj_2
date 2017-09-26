@@ -1,0 +1,6 @@
+*~
+*.pyc
+.ipynb_checkpoints
+saved_models
+data
+CODEOWNERS
