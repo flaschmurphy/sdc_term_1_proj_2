@@ -2,5 +2,5 @@
 *.pyc
 .ipynb_checkpoints
 saved_models
-data
+data/*.p
 CODEOWNERS
