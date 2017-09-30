@@ -86,51 +86,60 @@ def normalize(X_train):
 def rgb2gray(arr):
     return np.array([cv2.cvtColor(i, cv2.COLOR_RGB2GRAY) for i in arr]).reshape([-1, 32, 32, 1]) 
 
+
 def LeNet(x, keep_prob=1):    
+    wbs = {
+        'w1': tf.Variable(tf.truncated_normal([3, 3, 1, 6], mean = mu, stddev = sigma)),
+        'b1': tf.Variable(tf.zeros([6])),
+
+        'w2': tf.Variable(tf.truncated_normal([3, 3, 6, 16], mean = mu, stddev = sigma)),
+        'b2': tf.Variable(tf.zeros([16])),
+
+        'w3': tf.Variable(tf.truncated_normal([1, 1, 16, 32], mean = mu, stddev = sigma)),
+        'b3': tf.Variable(tf.zeros([32])),
+
+        'w4': tf.Variable(tf.truncated_normal([6*6*32, 120], mean = mu, stddev = sigma)),
+        'b4': tf.Variable(tf.zeros([120])),
+
+        'w5': tf.Variable(tf.truncated_normal([120, 84], mean = mu, stddev = sigma)),
+        'b5': tf.Variable(tf.zeros([84])),
+
+        'w6': tf.Variable(tf.truncated_normal([84, 43], mean = mu, stddev = sigma)),
+        'b6': tf.Variable(tf.zeros([43]))
+    }
+
     mu = 0
     sigma = 0.1
     
     # Convolutional Layer. 32x32x1 --> 30x30x6 --> 15x15x6
-    weights = tf.Variable(tf.truncated_normal([3, 3, 1, 6], mean = mu, stddev = sigma))
-    bias = tf.Variable(tf.zeros([6]))
-    logits = tf.nn.conv2d(x, weights, strides=[1, 1, 1, 1], padding='VALID') + bias
+    logits = tf.nn.conv2d(x, wbs['w1'], strides=[1, 1, 1, 1], padding='VALID') + wbs['b1']
     logits = tf.nn.elu(logits)
     logits = tf.nn.max_pool(logits, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='VALID')
 
     # Convolutional Layer: 15x15x6 --> 13x13x16 --> 6x6x16
-    weights = tf.Variable(tf.truncated_normal([3, 3, 6, 16], mean = mu, stddev = sigma))
-    bias = tf.Variable(tf.zeros([16]))
-    logits = tf.nn.conv2d(logits, weights, strides=[1, 1, 1, 1], padding='VALID') + bias
+    logits = tf.nn.conv2d(logits, wbs['w2'], strides=[1, 1, 1, 1], padding='VALID') + wbs['b2']
     logits = tf.nn.elu(logits)
     logits = tf.nn.max_pool(logits, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='VALID')
 
     # Convolutional Layer: 6x6x16 --> 6x6x32
-    weights = tf.Variable(tf.truncated_normal([1, 1, 16, 32], mean = mu, stddev = sigma))
-    bias = tf.Variable(tf.zeros([32]))
-    logits = tf.nn.conv2d(logits, weights, strides=[1, 1, 1, 1], padding='VALID') + bias
+    logits = tf.nn.conv2d(logits, wbs['w3'], strides=[1, 1, 1, 1], padding='VALID') + wbs['b3']
     logits = tf.nn.elu(logits)
     
     # Flatten. 6x6x32 --> 1152
     logits = tf.contrib.layers.flatten(logits)
 
     # Fully Connected Layer. 1152 --> 120
-    weights = tf.Variable(tf.truncated_normal([6*6*32, 120], mean = mu, stddev = sigma))
-    bias = tf.Variable(tf.zeros([120]))
-    logits = tf.matmul(logits, weights) + bias
+    logits = tf.matmul(logits, wbs['w4']) + wbs['b4']
     logits = tf.nn.dropout(logits, keep_prob=keep_prob)
     logits = tf.nn.elu(logits)
 
     # Fully Connected Layer. 120 --> 84 
-    weights = tf.Variable(tf.truncated_normal([120, 84], mean = mu, stddev = sigma))
-    bias = tf.Variable(tf.zeros([84]))
-    logits = tf.matmul(logits, weights) + bias
+    logits = tf.matmul(logits, wbs['w5']) + wbs['b5']
     logits = tf.nn.dropout(logits, keep_prob=keep_prob)
     logits = tf.nn.elu(logits)
 
     # Fully Connected Layer. 84 --> 43
-    weights = tf.Variable(tf.truncated_normal([84, 43], mean = mu, stddev = sigma))
-    bias = tf.Variable(tf.zeros([43]))
-    logits = tf.matmul(logits, weights) + bias
+    logits = tf.matmul(logits, wbs['w6']) + wbs['b6']
     
     return logits
 
@@ -151,16 +160,59 @@ def preprocess_test_image(path):
     image = (image - 128) / 128
     return image
 
+def test_downloads():
+    for path in glob.glob('./data/other_data/*.jpg'):
+        image = preprocess_test_image(path)
+        fname = (os.path.basename(path))
+        
+        actuals = []
+        results = []
+    
+        with tf.Session() as sess:
+            sess.run(tf.global_variables_initializer())    
+            onehot = sess.run(logits, feed_dict={x: [image], y: [y_lookup[fname]]})
+            pass
+    
+        prediction = np.where(onehot == 1)    
+        print("{} <==> Actual: {:20s} ({:2d}) <==> Predicted: {:20s} ({:2d})".format(
+            fname, 
+            id2names[y_lookup[fname]],
+            y_lookup[fname],
+            id2names[prediction],
+            prediction)
+        )
+
+        actuals.append(y_lookup[fname])
+        results.append(prediction)
+
+        return actuals, results
+
 
 def main():
-    global X_train, y_train, X_valid, y_valid, X_test, y_test, BATCH_SIZE, accuracy_operation, x, y
+    global X_train, \
+            y_train, \
+            X_valid, \
+            y_valid, \
+            X_test, \
+            y_test, \
+            BATCH_SIZE, \
+            accuracy_operation, \
+            x, \
+            y, \
+            logits, \
+            y_lookup, \
+            id2names
+
     load_data()
 
     id2names = load_signnames()
     train_classes = pd.Series(y_train)
     valid_classes = pd.Series(y_valid)
     classes_wkeys = pd.Series([(i, id2names[i]) for i in y_train])
+
+    print()
     print(classes_wkeys.value_counts())
+    print()
     
     X_train = rgb2gray(X_train)
     X_valid = rgb2gray(X_valid)
@@ -170,7 +222,7 @@ def main():
     X_valid = normalize(X_valid)
     X_test = normalize(X_test)
     
-    EPOCHS = 200
+    EPOCHS = 5
     BATCH_SIZE = 1024
     RATE = 0.005
     KEEP_PROB = 0.7
@@ -194,6 +246,7 @@ def main():
         num_examples = len(X_train)
         epoch_number, train_history, valid_history = 0, [], []
         
+        print()
         print("Training...")
         print()
         print("  Epoch# | Train | Valid")
@@ -218,6 +271,7 @@ def main():
             os.makedir('./saved_models')
         saver.save(sess, './saved_models/lenet')
         print("Model saved")
+        print()
     
     y_lookup = {
         '001.jpg': 22,     # Bumpy Road
@@ -229,32 +283,12 @@ def main():
         '007.jpg': 4,      # Speed limit (70km/h)
     }
     
-    for path in glob.glob('./data/other_data/*.jpg'):
-        image = preprocess_test_image(path)
-        fname = (os.path.basename(path))
-        
-        actuals = []
-        results = []
-    
-        with tf.Session() as sess:
-            sess.run(tf.global_variables_initializer())    
-            onehot = sess.run(one_hot_y, feed_dict={x: [image], y: [y_lookup[fname]]})
-    
-        prediction = np.where(onehot[0] == 1)[0][0]    
-        print("{} <==> Actual: {:20s} ({:2d}) <==> Predicted: {:20s} ({:2d})".format(
-            fname, 
-            id2names[y_lookup[fname]],
-            y_lookup[fname],
-            id2names[prediction],
-            prediction)
-        )
-        
-        actuals.append(y_lookup[fname])
-        results.append(prediction)
-    
+    actuals, results = test_downloads()
     percentage_accuracy = (sum([a == b for a, b in zip(actuals, results)]) / float(len(actuals))) * 100
     
+    print()
     print("Final Accuracy: {:.0f}%".format(percentage_accuracy))
+    print()
     
     init = tf.global_variables_initializer()
     for path in glob.glob('./data/other_data/*.jpg'):
