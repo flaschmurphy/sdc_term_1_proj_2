@@ -1,12 +1,10 @@
-#**Traffic Sign Recognition** 
+# **Traffic Sign Recognition** 
 
-##Writeup Template
-
-###You can use this file as a template for your writeup if you want to submit it as a markdown file, but feel free to use some other method and submit a pdf if you prefer.
+## Project Writeup
 
 ---
 
-**Build a Traffic Sign Recognition Project**
+** Build a Traffic Sign Recognition Project **
 
 The goals / steps of this project are the following:
 * Load the data set (see below for links to the project data set)
@@ -19,63 +17,112 @@ The goals / steps of this project are the following:
 
 [//]: # (Image References)
 
-[image1]: ./examples/visualization.jpg "Visualization"
-[image2]: ./examples/grayscale.jpg "Grayscaling"
-[image3]: ./examples/random_noise.jpg "Random Noise"
-[image4]: ./examples/placeholder.png "Traffic Sign 1"
-[image5]: ./examples/placeholder.png "Traffic Sign 2"
-[image6]: ./examples/placeholder.png "Traffic Sign 3"
-[image7]: ./examples/placeholder.png "Traffic Sign 4"
-[image8]: ./examples/placeholder.png "Traffic Sign 5"
+[image1]: ./resources/raw_examples.png "Random Sample Data"
+[image2]: ./resources/grayscale.png "Conversion to Grayscale"
+[image3]: ./resources/preprocessed_image.png "Preprocessed Imagef"
+[image4]: ./resources/image_dist.png "Distribution of images types"
 
-## Rubric Points
-###Here I will consider the [rubric points](https://review.udacity.com/#!/rubrics/481/view) individually and describe how I addressed each point in my implementation.  
+## Rubric Points 
+[[spec]](https://review.udacity.com/#!/rubrics/481/view)
 
----
-###Writeup / README
+### Writeup / README
 
-####1. Provide a Writeup / README that includes all the rubric points and how you addressed each one. You can submit your writeup as markdown or pdf. You can use this template as a guide for writing the report. The submission includes the project code.
+#### 1. The project submission includes all required files 
 
-You're reading it! and here is a link to my [project code](https://github.com/udacity/CarND-Traffic-Sign-Classifier-Project/blob/master/Traffic_Sign_Classifier.ipynb)
+All project files are archived on github
+[here](http://github.com/flaschmurphy/sdc_term_1_proj_2)
 
-###Data Set Summary & Exploration
+- Notebook file with all questions answered and all code cells executed: 
+  [link](http://github.com/flaschmurphy/sdc_term_1_proj_2/blob/master/Traffic_Sign_Classifier.ipynb)
 
-####1. Provide a basic summary of the data set. In the code, the analysis should be done using python, numpy and/or pandas methods rather than hardcoding results manually.
+- Project writeup: [link](http://github.com/flaschmurphy/sdc_term_1_proj_2/blob/master/writeup.ipynb)
 
-I used the pandas library to calculate summary statistics of the traffic
-signs data set:
+- An HTML or PDF export of the project notebook with the name report.html or report.pdf: 
+  [link](http://github.com/flaschmurphy/sdc_term_1_proj_2/blob/master/report.pdf)
 
-* The size of training set is ?
-* The size of the validation set is ?
-* The size of test set is ?
-* The shape of a traffic sign image is ?
-* The number of unique classes/labels in the data set is ?
+- Any additional datasets or images used:
+  [link](https://github.com/flaschmurphy/sdc_term_1_proj_2/tree/master/data/other_data)
 
-####2. Include an exploratory visualization of the dataset.
+- Your writeup report as a markdown or pdf file:
+  [link](https://github.com/flaschmurphy/sdc_term_1_proj_2/blob/master/writeup.md) (or this file)
 
-Here is an exploratory visualization of the data set. It is a bar chart showing how the data ...
+
+### Data Set Summary & Exploration
+
+#### 1. Provide a basic summary of the data set. 
+
+I used pandas, numpy and matplotlib to explore and analyze the dataset. Below
+are some findings.
+
+- Number of training examples is: 34799
+- Number of validation examples is: 4410
+- Number of testing examples is: 12630
+- Image data shape is: (32, 32, 1)
+- Number of unique classes is: 43
+
+#### 2. Include an exploratory visualization of the dataset.
+
+Here is an exploratory visualization of the data set. First off, here is
+a random selection of 15 images from the original dataset. As can be seen they
+are not very high resolution, and have very varied levels of brightness. 
 
 ![alt text][image1]
 
-###Design and Test a Model Architecture
+**Further observations as follows**
 
-####1. Describe how you preprocessed the image data. What techniques were chosen and why did you choose these techniques? Consider including images showing the output of each preprocessing technique. Pre-processing refers to techniques such as converting to grayscale, normalization, etc. (OPTIONAL: As described in the "Stand Out Suggestions" part of the rubric, if you generated additional data for training, describe why you decided to generate additional data, how you generated the data, and provide example images of the additional data. Then describe the characteristics of the augmented training set like number of images in the set, number of images for each class, etc.)
+- The classes are distributed in equal proportions in the training and
+  validation sets. See histogram below which demonstrates this
 
-As a first step, I decided to convert the images to grayscale because ...
+  ![alt_text][image4]
 
-Here is an example of a traffic sign image before and after grayscaling.
+- The most common classes are approx. 10 times more populous than the least common.
 
-![alt text][image2]
+- All the categories are valid and none are blank/NaN, which is good (no need
+  to preprocess to cover missing data)
 
-As a last step, I normalized the image data because ...
+- Some images are very dark (i.e. the pictures were taken in very low light)
+  therefore there is a broad range in the brightness. This is a good motivation
+  for applying grayscale. For example, images 11830, 18473, 15141 and 17847.
 
-I decided to generate additional data because ... 
+- The images are also quite low resolution and some of them are very hard to
+  interpret for a human. Examples: 24452, 13415. For those two images, they
+  look like speed limit signs, but the numbers are impossible to read.
 
-To add more data to the the data set, I used the following techniques because ... 
+- According to http://benchmark.ini.rub.de, the images contain a border of at
+  least 10% of the image size, "at least 5 pixels". Additionally, "images are
+  not necessarily squared... the actual traffic sign is not necessarily centered
+  within the image... this is true for images that were close to the image
+  border in the full camera image"
+
+### Design and Test a Model Architecture
+
+#### 1. Describe how you preprocessed the image data. 
+
+To preprocess the data I normalized it by subtracting and the dividing by 128.
+
+To help with the brightness issue I used OpenCV to convert the images to
+grayscale. Here is an example of a fully preprocessed image:
+
+![alt_text][image3]
+
+I also explored the option of generating additional data since the overall
+accuracy I was able to achieve didn't get above 95%. One reason for this is
+probably that there are many more samples of some images than others in the
+data so the model will train 'better' on the more numerous samples but have
+less opportunity to train on others. Therefore it would make sense to try to
+generate additional images for the sparse ones to end up with an even
+distribution. However an additional step would likely be needed to randomize
+the generated images e.g. by skewing them and varying their brightness, adding
+additional random noise, etc so that the model doesn't have an opportunity to
+overfit to the 'fake' data. Due to time constraints I was so far unable to go
+beyond the 1st step of generating the replica images, but when training on them
+the validation accuracy was very low (approx 30%) as I hadn't followed up with
+the other steps (the code is archived in the git branch
+'with_image_replication' though).
 
 Here is an example of an original image and an augmented image:
 
-![alt text][image3]
+![alt text][image2]
 
 The difference between the original data set and the augmented data set is the following ... 
 
