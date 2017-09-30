@@ -19,8 +19,9 @@ The goals / steps of this project are the following:
 
 [image1]: ./resources/raw_examples.png "Random Sample Data"
 [image2]: ./resources/grayscale.png "Conversion to Grayscale"
-[image3]: ./resources/preprocessed_image.png "Preprocessed Imagef"
+[image3]: ./resources/processed_image.png "Preprocessed Imagef"
 [image4]: ./resources/image_dist.png "Distribution of images types"
+[image5]: ./resources/training_progress.png "Training Progress"
 
 ## Rubric Points 
 [[spec]](https://review.udacity.com/#!/rubrics/481/view)
@@ -103,7 +104,7 @@ To preprocess the data I normalized it by subtracting and the dividing by 128.
 To help with the brightness issue I used OpenCV to convert the images to
 grayscale. Here is an example of a fully preprocessed image:
 
-![alt_text][image3]
+  ![alt_text][image3]
 
 I also explored the option of generating additional data since the overall
 accuracy I was able to achieve didn't get above 95%. One reason for this is
@@ -113,43 +114,62 @@ less opportunity to train on others. Therefore it would make sense to try to
 generate additional images for the sparse ones to end up with an even
 distribution. However an additional step would likely be needed to randomize
 the generated images e.g. by skewing them and varying their brightness, adding
-additional random noise, etc so that the model doesn't have an opportunity to
-overfit to the 'fake' data. Due to time constraints I was so far unable to go
-beyond the 1st step of generating the replica images, but when training on them
-the validation accuracy was very low (approx 30%) as I hadn't followed up with
-the other steps (the code is archived in the git branch
-'with_image_replication' though).
+additional random noise etc, so that the model doesn't have an opportunity to
+overfit to the 'fake' data. Due to time constraints, so far I was unable to go
+beyond the 1st step of generating the replica images. Because I hadn't followed
+up with the other steps, the validation accuracy was very low, approx 30% The
+code is archived in the git branch 'with_image_replication'. Using the adagrad
+optimizer in the model (see section 3 below) helps with the sparse data as it
+performs larger updates for infrequent parameters and smaller updates for frequent
+parameters.
 
-Here is an example of an original image and an augmented image:
-
-![alt text][image2]
-
-The difference between the original data set and the augmented data set is the following ... 
-
-
-####2. Describe what your final model architecture looks like including model type, layers, layer sizes, connectivity, etc.) Consider including a diagram and/or table describing the final model.
+#### 2. Describe what your final model architecture looks like 
 
 My final model consisted of the following layers:
 
-| Layer         		|     Description	        					| 
-|:---------------------:|:---------------------------------------------:| 
-| Input         		| 32x32x3 RGB image   							| 
-| Convolution 3x3     	| 1x1 stride, same padding, outputs 32x32x64 	|
-| RELU					|												|
-| Max pooling	      	| 2x2 stride,  outputs 16x16x64 				|
-| Convolution 3x3	    | etc.      									|
-| Fully connected		| etc.        									|
-| Softmax				| etc.        									|
-|						|												|
-|						|												|
+| Layer             |      |     Description                              | 
+|:------------------|------|---------------------------------------------:| 
+| Input             |      | 32x32x3 RGB image                            | 
+| Convolution 3x3   |      | 1x1 stride, 32x32x1 to 30x30x6               |
+| Max pooling       |      | 2x2 kernel, 30x30x6 to 15x15x6               |
+| Convolution 3x3   |      | 1x1 stride, 15x15x6 to 13x13x16              |
+| Max pooling       |      | 2x2 kernel, 13x13x16 to 6x6x16               |
+| Convolution 1x1   |      | 1x1 stride, 6x6x16 to 6x6x32                 |
+| Elu               |      | Activation                                   |
+| Fully Connected   |      | With bias, output size 120                   |
+| Dropout           |      |                                              |
+| Elu               |      | Activation                                   |
+| Fully Connected   |      | With bias, output size 84                    |
+| Dropout           |      |                                              |
+| Fully Connected   |      | With bias, output size 43                    |
+|-------------------|------|----------------------------------------------| 
  
 
+#### 3. Describe how you trained your model
 
-####3. Describe how you trained your model. The discussion can include the type of optimizer, the batch size, number of epochs and any hyperparameters such as learning rate.
+In training my model I used a large batch size as I was using an Amazon VM with
+plenty of memory and compute power. It might be that the model would improve if
+run for more epochs, but 200 was enough to reach 95%. This is visible in the
+graph below which shows the validation accuracy plotted against the training
+accuracy over the 200 epochs.
 
-To train the model, I used an ....
+![alt_text][image5]
 
-####4. Describe the approach taken for finding a solution and getting the validation set accuracy to be at least 0.93. Include in the discussion the results on the training, validation and test sets and where in the code these were calculated. Your approach may have been an iterative process, in which case, outline the steps you took to get to the final solution and why you chose those steps. Perhaps your solution involved an already well known implementation or architecture. In this case, discuss why you think the architecture is suitable for the current problem.
+After experimenting with many values, I settled on a learning rate of 0.005 and
+a keep probability of 0.7. Learning rates higher than this caused the model to
+destabalize, while lower values took too long to train.
+
+The optimizer used was the AdamOptimizer which has the benefits of including
+momentum and learning rate decay built in. It also handles sparce data well.
+
+####4. Describe the approach taken for finding a solution and getting the
+validation set accuracy to be at least 0.93. Include in the discussion the
+results on the training, validation and test sets and where in the code these
+were calculated. Your approach may have been an iterative process, in which
+case, outline the steps you took to get to the final solution and why you chose
+those steps. Perhaps your solution involved an already well known
+implementation or architecture. In this case, discuss why you think the
+architecture is suitable for the current problem.
 
 My final model results were:
 * training set accuracy of ?
@@ -184,13 +204,13 @@ The first image might be difficult to classify because ...
 
 Here are the results of the prediction:
 
-| Image			        |     Prediction	        					| 
+| Image                    |     Prediction                                | 
 |:---------------------:|:---------------------------------------------:| 
-| Stop Sign      		| Stop sign   									| 
-| U-turn     			| U-turn 										|
-| Yield					| Yield											|
-| 100 km/h	      		| Bumpy Road					 				|
-| Slippery Road			| Slippery Road      							|
+| Stop Sign              | Stop sign                                       | 
+| U-turn                 | U-turn                                         |
+| Yield                    | Yield                                            |
+| 100 km/h                  | Bumpy Road                                     |
+| Slippery Road            | Slippery Road                                  |
 
 
 The model was able to correctly guess 4 of the 5 traffic signs, which gives an accuracy of 80%. This compares favorably to the accuracy on the test set of ...
@@ -201,13 +221,13 @@ The code for making predictions on my final model is located in the 11th cell of
 
 For the first image, the model is relatively sure that this is a stop sign (probability of 0.6), and the image does contain a stop sign. The top five soft max probabilities were
 
-| Probability         	|     Prediction	        					| 
+| Probability             |     Prediction                                | 
 |:---------------------:|:---------------------------------------------:| 
-| .60         			| Stop sign   									| 
-| .20     				| U-turn 										|
-| .05					| Yield											|
-| .04	      			| Bumpy Road					 				|
-| .01				    | Slippery Road      							|
+| .60                     | Stop sign                                       | 
+| .20                     | U-turn                                         |
+| .05                    | Yield                                            |
+| .04                      | Bumpy Road                                     |
+| .01                    | Slippery Road                                  |
 
 
 For the second image ... 
