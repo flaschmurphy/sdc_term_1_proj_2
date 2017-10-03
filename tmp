@@ -1,0 +1,14 @@
+def plot_accuracy_hist():
+   """ Plot the training vs validation accuracy over time
+
+   For use in a Jupyter notebook
+   """
+plt.figure(figsize=(20,10))
+   plt.title('Train vs. Validation Accuracy')
+   ax = plt.subplot(111)
+   _ = ax.plot(train_history, '--', color='blue', label='training')
+   _ = ax.plot(valid_history, color='red', label='validation')
+   _ = ax.legend()
+
+plot_accuarcy_hist(et norelativenumber
+

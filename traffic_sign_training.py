@@ -99,19 +99,35 @@ def load_signnames():
         id2names[int(class_id)] = sign_name
     return id2names
 
-#def plot_rand_sample(id2names):
-#    """Plot some samples for visual inspection. Running this cell multiple times will 
-#    produce different random samples from the training data."""
-#    fig, axes = plt.subplots(nrows=5, ncols=3, figsize=(20,20))
-#    for ax in np.array(axes).flatten():
-#        image, index = get_rand_image()
-#        class_id = y_train[index]
-#        ax.set_title('Idx: %d; Class: %d\nName: %s' % (index, class_id, id2names[class_id]))
-#        ax.get_xaxis().set_visible(False)
-#        ax.get_yaxis().set_visible(False)
-#        s = fig.add_subplot(ax)
-#        s.imshow(image)
-#    plt.show()
+
+def plot_rand_sample(id2names):
+    """Plot some samples for visual inspection. Running this cell multiple times will 
+    produce different random samples from the training data.
+    
+    For use inside a Jupyter notebook
+    """
+    fig, axes = plt.subplots(nrows=5, ncols=3, figsize=(20,20))
+    for ax in np.array(axes).flatten():
+        image, index = get_rand_image()
+        class_id = y_train[index]
+        ax.set_title('Idx: %d; Class: %d\nName: %s' % (index, class_id, id2names[class_id]))
+        ax.get_xaxis().set_visible(False)
+        ax.get_yaxis().set_visible(False)
+        s = fig.add_subplot(ax)
+        s.imshow(image)
+    plt.show()
+
+
+def plot_hist_summary(y_train, y_valid, y_test):
+    """Plot a histogram of the training, validation and test sets. 
+
+    For use inside a Jupyter notebook
+    """
+    train_classes = pd.Series(y_train)
+    train_classes.plot.hist(alpha=0.5, bins=43)
+    
+    train_classes = pd.Series(y_valid)
+    train_classes.plot.hist(alpha=0.5, bins=43)
 
 
 def rgb2gray(image_set):
@@ -127,6 +143,18 @@ def preprocess(image_set):
     x = rgb2gray(image_set)
     x = normalize(x)
     return x
+
+def plot_accuracy_hist():
+    """ Plot the training vs validation accuracy over time
+
+    For use in a Jupyter notebook
+    """
+    plt.figure(figsize=(20,10))
+    plt.title('Train vs. Validation Accuracy')
+    ax = plt.subplot(111)
+    _ = ax.plot(train_history, '--', color='blue', label='training')
+    _ = ax.plot(valid_history, color='red', label='validation')
+    _ = ax.legend()
 
 
 def LeNet(x, keep_prob):
@@ -292,28 +320,29 @@ if __name__ == "__main__":
     #
     # Hyperparamters
     #
-    EPOCHS = 500
+    EPOCHS = 250
     BATCH_SIZE = 1024
     RATE = 0.005
     KEEP_PROB = 0.7
 
     main()
 
-#     # Implement the top_k part
-#     init = tf.global_variables_initializer()
-#     for path in glob.glob('./data/other_data/*.jpg'):
-#         image = preprocess_test_image(path)
-#         fname = os.path.basename(path)
-#     
-#         with tf.Session() as sess:
-#             sess.run(init)
-#             result = sess.run(tf.nn.softmax(logits), feed_dict={x: [image], y: [y_lookup[fname]]})
-#             topk = sess.run(tf.nn.top_k(result, k=5))
-#          
-#         print('{}     ==> TopK Vals: {}, Index: {} \nPrediction: ==> {}'.format(
-#             os.path.basename(path), topk.values, topk.indices, id2names[0]))
-#         
-#         plt.imshow(imread(path, mode='RGB'))
-#         plt.show()
+def topk():
+    # Implement the top_k part
+    init = tf.global_variables_initializer()
+    for path in glob.glob('./data/other_data/*.jpg'):
+        image = preprocess_test_image(path)
+        fname = os.path.basename(path)
+    
+        with tf.Session() as sess:
+            sess.run(init)
+            result = sess.run(tf.nn.softmax(logits), feed_dict={x: [image], y: [y_lookup[fname]]})
+            topk = sess.run(tf.nn.top_k(result, k=5))
+         
+        print('{}     ==> TopK Vals: {}, Index: {} \nPrediction: ==> {}'.format(
+            os.path.basename(path), topk.values, topk.indices, id2names[0]))
+        
+        plt.imshow(imread(path, mode='RGB'))
+        plt.show()
     
 
