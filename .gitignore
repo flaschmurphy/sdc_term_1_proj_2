@@ -3,6 +3,6 @@
 .ipynb_checkpoints
 saved_models
 data/*.p
-data/random_x_samples
+data/random_x_sample
 CODEOWNERS
 *.swp
