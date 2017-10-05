@@ -83,6 +83,9 @@ def infer(glob_pattern=None):
     return results, accuracy, scores
 
 def main():
+
+    print("\n\nWARNING: This script needs to be updated with the latest code from the Jupyter notebook\n\n")
+
     results_newimages = infer()
     for file in results_newimages[0].keys():
         print("File: {:<20}: Actual: {:>2} --> Predicted: {}".format(\

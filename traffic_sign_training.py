@@ -238,6 +238,8 @@ def main():
            X_train, y_train, X_valid, y_valid, X_test, y_test, \
            w1, w2, w3, w4, w5, w6, b1, b2, b3, b4, b5, b6
 
+    print("\n\nWARNING: This script needs to be updated with the latest code from the Jupyter notebook\n\n")
+
     print()
 
     # Load the raw traffic sign data
