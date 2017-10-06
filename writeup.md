@@ -42,13 +42,11 @@ All project files are archived on github
 - Notebook file with all questions answered and all code cells executed: 
   [link](http://github.com/flaschmurphy/sdc_term_1_proj_2/blob/master/Traffic_Sign_Classifier.ipynb)
 
-- Project writeup: [link](http://github.com/flaschmurphy/sdc_term_1_proj_2/blob/master/writeup.ipynb)
-
 - An HTML or PDF export of the project notebook with the name report.html or report.pdf: 
-  [link](http://github.com/flaschmurphy/sdc_term_1_proj_2/blob/master/report.pdf)
+  [link](http://github.com/flaschmurphy/sdc_term_1_proj_2/blob/master/Traffic_Sign_Classifier.html)
 
 - Any additional datasets or images used:
-  [link](https://github.com/flaschmurphy/sdc_term_1_proj_2/tree/master/data/other_data)
+  [link](https://github.com/flaschmurphy/sdc_term_1_proj_2/tree/master/data/other_images)
 
 - Your writeup report as a markdown or pdf file:
   [link](https://github.com/flaschmurphy/sdc_term_1_proj_2/blob/master/writeup.md) (or this file)
@@ -64,7 +62,7 @@ are some findings.
 - Number of training examples is: 34799
 - Number of validation examples is: 4410
 - Number of testing examples is: 12630
-- Image data shape is: (32, 32, 1)
+- Image data shape is: (32, 32, 3)
 - Number of unique classes is: 43
 
 #### 2. Include an exploratory visualization of the dataset.
