@@ -7,12 +7,16 @@ import argparse
 
 import cv2
 import pandas as pd
+import matplotlib.pyplot as plt
 from sklearn.utils import shuffle
 from scipy.ndimage import imread
 from scipy.misc import imresize, imsave
 
-os.environ['TF_CPP_MIN_LOG_LEVEL']='3'
 import tensorflow as tf
+
+# Data was downloaded from this source: 
+# https://d17h27t6h515a5.cloudfront.net/topher/2017/February/5898cd6f_traffic-signs-data/traffic-signs-data.zip
+#@todo: implement a method to download this automatically if not present and remove raw data from source control
 
 
 def load_data():
@@ -36,22 +40,19 @@ def load_data():
     return X_train, y_train, X_valid, y_valid, X_test, y_test
 
 
-def save_random_sample(n=10, destination_folder='./data/random_x_sample'):
-    """Save a random sample of training images to disk. WARNING!! Any *.png files
-    found in the destination path will be deleted and replaced by new images.
+def load_signnames():
+    """Load the id to string name mapping into a dict.
     """
-    random_indices = np.random.choice(range(X_train.shape[0]), n, replace=False)
-    if not os.path.exists(destination_folder):
-        os.mkdir(destination_folder)
-    for old_file in glob.glob(destination_folder + '/*.png'):
-        os.unlink(old_file)
-    for i in random_indices:
-        fname = destination_folder + '/' + str(i) + '.png'
-        imsave(fname, X_train[i])
-    print('Saved %d randomly selected original images to %s' % (n, destination_folder))
+    id2names={}
+    with open('signnames.csv') as f:
+        d = f.readlines()
+    for r in d[1:]:
+        class_id, sign_name = r.strip().split(',')
+        id2names[int(class_id)] = sign_name
+    return id2names
 
 
-def print_stats(X_train, y_train):
+def print_stats():
     """Print some basic stats obtained from the raw data.
     """
     n_train = X_train.shape[0]
@@ -63,22 +64,22 @@ def print_stats(X_train, y_train):
     image_shape = shapes.pop()
 
     n_classes = len(set(y_train))
+    assert len(y_train) == len(X_train), 'Number of classes (y) must equal number of rows in input (X)'
 
     print("Number of training examples is: {}".format(n_train))
     print("Number of validation examples is: {}".format(n_valid))
     print("Number of testing examples is: {}".format(n_test))
     print("Image data shape is: {}".format(image_shape))
     print("Number of unique classes is: {}".format(n_classes))
-
-    assert len(y_train) == len(X_train), 'Number of classes (y) must equal number of rows in input (X)'
-
+    
     # Print a summary of the classes in y and their occurrence counts
     id2names = load_signnames()
     classes_wkeys = pd.Series([(i, id2names[i]) for i in y_train])
     print()
+    print("Summary of classes and their frequency:")
     print(classes_wkeys.value_counts())
     print()
-
+    
 
 def get_rand_image():
     """Get a random image from the training data.
@@ -102,10 +103,7 @@ def load_signnames():
 
 def plot_rand_sample(id2names):
     """Plot some samples for visual inspection. Running this cell multiple times will 
-    produce different random samples from the training data.
-    
-    For use inside a Jupyter notebook
-    """
+    produce different random samples from the training data."""
     fig, axes = plt.subplots(nrows=5, ncols=3, figsize=(20,20))
     for ax in np.array(axes).flatten():
         image, index = get_rand_image()
@@ -116,45 +114,36 @@ def plot_rand_sample(id2names):
         s = fig.add_subplot(ax)
         s.imshow(image)
     plt.show()
+    plt.clf()
 
 
 def plot_hist_summary(y_train, y_valid, y_test):
-    """Plot a histogram of the training, validation and test sets. 
-
-    For use inside a Jupyter notebook
+    """Plot a histogram of the training, validation and test sets.
     """
     train_classes = pd.Series(y_train)
     train_classes.plot.hist(alpha=0.5, bins=43)
     
     train_classes = pd.Series(y_valid)
     train_classes.plot.hist(alpha=0.5, bins=43)
+    plt.show()
+    plt.clf()
 
 
 def rgb2gray(image_set):
     x = np.array([cv2.cvtColor(i, cv2.COLOR_RGB2GRAY) for i in image_set]).reshape([-1, 32, 32, 1]) 
     return x
 
+
 def normalize(image_set):
     x = image_set.copy().astype(np.float64)
     x = (x - 128) / 128
     return x
 
+
 def preprocess(image_set):
     x = rgb2gray(image_set)
     x = normalize(x)
     return x
-
-def plot_accuracy_hist():
-    """ Plot the training vs validation accuracy over time
-
-    For use in a Jupyter notebook
-    """
-    plt.figure(figsize=(20,10))
-    plt.title('Train vs. Validation Accuracy')
-    ax = plt.subplot(111)
-    _ = ax.plot(train_history, '--', color='blue', label='training')
-    _ = ax.plot(valid_history, color='red', label='validation')
-    _ = ax.legend()
 
 
 def LeNet(x, keep_prob):
@@ -230,17 +219,15 @@ def init_weights():
     w6 = tf.Variable(tf.truncated_normal([84, 43], mean = mu, stddev = sigma))
     b6 = tf.Variable(tf.zeros([43]))
 
-
-def main():
+    
+def train():
     """Main method - run the training including back prop and print out of results
     """
     global x, y, keep_prob, \
-           X_train, y_train, X_valid, y_valid, X_test, y_test, \
-           w1, w2, w3, w4, w5, w6, b1, b2, b3, b4, b5, b6
-
-    print("\n\nWARNING: This script needs to be updated with the latest code from the Jupyter notebook\n\n")
-
-    print()
+            X_train, y_train, X_valid, y_valid, X_test, y_test, \
+            w1, w2, w3, w4, w5, w6, b1, b2, b3, b4, b5, b6, \
+            logits, accuracy_operation, train_history, valid_history, \
+            test_accuracy
 
     # Load the raw traffic sign data
     X_train, y_train, X_valid, y_valid, X_test, y_test = load_data()
@@ -249,7 +236,7 @@ def main():
     test_classes = pd.Series(y_test)
 
     # Save some images to be used later to manually check inference accuracy
-    save_random_sample()       
+    #save_random_sample()
     
     # Pre-process the images
     X_train = preprocess(X_train)
@@ -267,19 +254,20 @@ def main():
     ## Initialize weights operation
     init_weights()
     ## One hot vector for y. Note: 43 is the number of classes in the data.
-    one_hot_y = tf.one_hot(y, 43)
+    one_hot_y = tf.one_hot(y, 43, name='one_hot_y')
     ## Forward prop
     logits = LeNet(x, keep_prob=keep_prob)
     ## Error
     cross_entropy = tf.nn.softmax_cross_entropy_with_logits(labels=one_hot_y, logits=logits)
     ## Loss & Optimizer
     loss_operation = tf.reduce_mean(cross_entropy)
-    optimizer = tf.train.AdamOptimizer(learning_rate = RATE)
+    optimizer = tf.train.AdamOptimizer(learning_rate=RATE)
     ## Back prop
     training_operation = optimizer.minimize(loss_operation)
     ## Evaluate
-    correct_prediction = tf.equal(tf.argmax(logits, 1), tf.argmax(one_hot_y, 1))
-    accuracy_operation = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
+    correct_prediction = tf.equal(tf.argmax(logits, 1), tf.argmax(one_hot_y, 1), name='correct_op')
+    accuracy_operation = tf.reduce_mean(tf.cast(correct_prediction, tf.float32), name='accuracy_op')
+    #
     
     # Run the training
     saver = tf.train.Saver()
@@ -293,7 +281,7 @@ def main():
         epoch_number, train_history, valid_history = 0, [], []
 
         print("  Epoch# | Train | Valid")
-        print("--------------------------")
+        print("---------+-------+--------")
 
         for i in range(EPOCHS):
             epoch_number += 1
@@ -306,45 +294,75 @@ def main():
             train_accuracy = evaluate(X_train, y_train, accuracy_operation)
             valid_accuracy = evaluate(X_valid, y_valid, accuracy_operation)
             
+            # Only to be checked once model design is finalized
+            test_accuracy = evaluate(X_test, y_test, accuracy_operation)
+            
             train_history.append(train_accuracy)
             valid_history.append(valid_accuracy)
             
             print("  {:>6} | {:<.3f} | {:<.3f} ".format(i+1, train_accuracy, valid_accuracy))
         
         if not os.path.exists('./saved_models'):
-            os.makedir('./saved_models')
+            os.mkdir('./saved_models')
         saver.save(sess, './saved_models/lenet')
         print("Model saved")
         print()
+        
+
+# Plot the training vs validation accuracy over time
+def plot_accuracy_hist():
+    """ Plot the training vs validation accuracy over time
+    """
+    plt.figure(figsize=(20,10))
+    plt.title('Train vs. Validation Accuracy')
+    ax = plt.subplot(111)
+    _ = ax.plot(train_history, '--', color='blue', label='training')
+    _ = ax.plot(valid_history, color='red', label='validation')
+    _ = ax.legend()
+    plt.show()
 
 
-if __name__ == "__main__":
-    #
-    # Hyperparamters
-    #
-    EPOCHS = 250
+def main():
+    global X_train, y_train, X_valid, y_valid, X_test, y_test,\
+            EPOCHS, BATCH_SIZE, RATE, KEEP_PROB
+
+    EPOCHS = 1
     BATCH_SIZE = 1024
-    RATE = 0.005
-    KEEP_PROB = 0.7
+    RATE = 0.0025
+    KEEP_PROB = 0.5
 
+    X_train, y_train, X_valid, y_valid, X_test, y_test = load_data()
+    print_stats()
+
+    id2names = load_signnames()
+
+    plot_rand_sample(id2names)
+    plot_hist_summary(y_train, y_valid, y_test)
+
+    plt.imshow(X_train[1243].squeeze())
+    plt.title('Original Image')
+    plt.show()
+
+    # Pre-process all the images
+    X_train = preprocess(X_train)
+    X_valid = preprocess(X_valid)
+    X_test = preprocess(X_test)
+
+    plt.imshow(X_train[1243].squeeze(), cmap="gray")
+    plt.title('Normalized Grayscale Image')
+    plt.show()
+
+    train()
+
+    plot_accuracy_hist()
+
+    print("Final test accuracy: {:.2f}".format(test_accuracy))
+
+
+if __name__ == '__main__':
     main()
 
-def topk():
-    # Implement the top_k part
-    init = tf.global_variables_initializer()
-    for path in glob.glob('./data/other_data/*.jpg'):
-        image = preprocess_test_image(path)
-        fname = os.path.basename(path)
-    
-        with tf.Session() as sess:
-            sess.run(init)
-            result = sess.run(tf.nn.softmax(logits), feed_dict={x: [image], y: [y_lookup[fname]]})
-            topk = sess.run(tf.nn.top_k(result, k=5))
-         
-        print('{}     ==> TopK Vals: {}, Index: {} \nPrediction: ==> {}'.format(
-            os.path.basename(path), topk.values, topk.indices, id2names[0]))
-        
-        plt.imshow(imread(path, mode='RGB'))
-        plt.show()
-    
+
+
+
 

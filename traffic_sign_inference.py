@@ -1,27 +1,41 @@
 import os
 import glob
+import pickle
+import random
 import numpy as np
+import argparse
+
 import cv2
 import pandas as pd
-
 from sklearn.utils import shuffle
 from scipy.ndimage import imread
-from scipy.misc import imresize
+from scipy.misc import imresize, imsave
+import matplotlib.pyplot as plt
 
-os.environ['TF_CPP_MIN_LOG_LEVEL']='3'
 import tensorflow as tf
 
-def preprocess_test_image(path):
+#
+# Methods to load and preprocess images are defined here but not really used until the next cell
+#
+def preprocess_test_image(path, imtype='png', prt_fcn=None):
     image = imread(path)
     image = imresize(image, (32, 32, 3))
-    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-    image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+    if imtype == 'png':
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    else:
+        image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+
+    image = cv2.GaussianBlur(image,(15,15),0)
+    
     image = image.reshape((32, 32, 1))
     image = (image - 128) / 128
     return image
 
 
-def get_images(glob_pattern='./data/other_images/*.png', preprocess=True):
+def get_images(glob_pattern=None, preprocess=True):
+    if glob_pattern is None:
+        glob_pattern = './data/other_images/*.png'
+
     images = []
     names = []
     for longname in glob.glob(glob_pattern):
@@ -37,18 +51,28 @@ def get_images(glob_pattern='./data/other_images/*.png', preprocess=True):
     return images, names
 
 
-def plot_images():
-    images, file_names = get_images(preprocess=False)
-    for image in images:
-        plt.imshow(image.squeeze(), cmap="gray")
+def plot_images(preprocess=False):
+    images, file_names = get_images(preprocess=preprocess)
+    for i in range(len(images)):
+        plt.imshow(images[i].squeeze(), cmap="gray")
+        plt.title('Name: %s' % file_names[i])
         plt.show()
+
+
+def load_signnames():
+    """Load the id to string name mapping into a dict.
+    """
+    id2names={}
+    with open('signnames.csv') as f:
+        d = f.readlines()
+    for r in d[1:]:
+        class_id, sign_name = r.strip().split(',')
+        id2names[int(class_id)] = sign_name
+    return id2names
 
 def infer(glob_pattern=None):
     # Load the images
-    if glob_pattern is None:
-        images, file_names = get_images()
-    else:
-        images, file_names = get_images(glob_pattern)
+    images, file_names = get_images(glob_pattern)
 
     # The correct class for each image is encoded in the filename
     y = []
@@ -72,38 +96,51 @@ def infer(glob_pattern=None):
         scores = sess.run(logits, feed_dict = {x: images, keep_prob: 1.0})
         
         # Check the accuracy
-        x = sess.run(tf.one_hot(np.argmax(scores, axis=1), len(file_names)))
-        y = sess.run(tf.one_hot(y, len(file_names)))
+        x = sess.run(tf.one_hot(np.argmax(scores, axis=1), 43))
+        y = sess.run(tf.one_hot(y, 43))
 
-        correctness = sess.run(correct_prediction_op, feed_dict={logits: scores, one_hot_y: y})
+        correctness = sess.run(correct_prediction_op, feed_dict={logits: x, one_hot_y: y})
         accuracy = sess.run(accuracy_operation_op, feed_dict={correct_prediction_op: correctness})
 
-    results = dict(zip(file_names, [np.argmax(l) for l in scores]))
+    return file_names, accuracy, scores
 
-    return results, accuracy, scores
 
 def main():
+    #plot_images(preprocess=False)
 
-    print("\n\nWARNING: This script needs to be updated with the latest code from the Jupyter notebook\n\n")
+    id2names = load_signnames()
+    files, accuracy, scores = infer()
 
-    results_newimages = infer()
-    for file in results_newimages[0].keys():
-        print("File: {:<20}: Actual: {:>2} --> Predicted: {}".format(\
-                file, file.split('.')[-2].split('_')[-1], results_newimages[0][file]))
+    for i in range(len(files)):
+        print("File: {:<31}: Actual: {:>2} --> Predicted: {} ({})".format(
+            files[i], files[i].split('.')[-2].split('_')[-1], np.argmax(scores[i]), id2names[np.argmax(scores[i])]))
 
-    # Also check the accuracy for the test images that we saved to disk earlier from the training data.
-    results_testimages = infer(glob_pattern='./data/random_x_sample/*.png')
+    print()
+    print("Accuracy for the newly downloaded images:          %s" % str(int(accuracy * 100)) + '%')
+    print()
 
-    print("Accuracy for the newly downloaded images:          %s" % str(int(results_newimages[1] * 100)) + '%')
-    print("Accuracy for the previously saved training images: %s" % str(int(results_testimages[1] * 100)) + '%')
-
-    # Print out the top five softmax probabilities
     with tf.Session() as sess:
-        topk = sess.run(tf.nn.top_k(tf.nn.softmax(results_newimages[2]), k=5))
-    print("Top 5 Softmax probabilities: \n{}".format(topk))
+        topk = sess.run(tf.nn.top_k(tf.nn.softmax(scores), k=5))
+
+    for i in range(len(files)):
+        file = files[i]
+        probs = topk.values[i]
+        idxs = topk.indices[i]
+
+        print("##### Top 5 Softmax for {}:".format(file))
+        print()
+        print("| {:<11} | {:<45} |".format("Probability", "Prediction"))
+        print("|:{:11}-|:{:<40}-|".format("-"*11, "-"*45))
+
+        for j in range(len(probs)):
+            print("| {:11.4f} | {:<40} ({:2d}) |".format(probs[j], id2names[idxs[j]], idxs[j]))
+
+        print("\n\n")
+
 
 if __name__ == '__main__':
     main()
+
 
 
 
