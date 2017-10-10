@@ -103,7 +103,8 @@ def load_signnames():
 
 def plot_rand_sample(id2names):
     """Plot some samples for visual inspection. Running this cell multiple times will 
-    produce different random samples from the training data."""
+    produce different random samples from the training data.
+    """
     fig, axes = plt.subplots(nrows=5, ncols=3, figsize=(20,20))
     for ax in np.array(axes).flatten():
         image, index = get_rand_image()
@@ -326,7 +327,7 @@ def main():
     global X_train, y_train, X_valid, y_valid, X_test, y_test,\
             EPOCHS, BATCH_SIZE, RATE, KEEP_PROB
 
-    EPOCHS = 1
+    EPOCHS = 100
     BATCH_SIZE = 1024
     RATE = 0.0025
     KEEP_PROB = 0.5
